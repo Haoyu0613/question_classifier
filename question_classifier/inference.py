@@ -166,7 +166,15 @@ class QuestionClassifier:
         if choice_signals.get("is_blank_choice", False):
             if '填空' in self.types:
                 blank_index = self.types.index('填空')
-                boosted[blank_index] *= 0.4  # 压制到40%
+                # 根据填空数量动态调整压制强度
+                blank_count = choice_signals.get("blank_count", 1)
+                if blank_count >= 3:
+                    suppress_factor = 0.2  # 3个以上填空，强压制
+                elif blank_count == 2:
+                    suppress_factor = 0.25  # 2个填空，中等压制
+                else:
+                    suppress_factor = 0.35  # 1个填空，温和压制
+                boosted[blank_index] *= suppress_factor
 
         # 3. 归一化
         boosted = boosted / (boosted.sum() + 1e-10)
