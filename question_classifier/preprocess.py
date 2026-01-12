@@ -30,10 +30,15 @@ def extract_choice_signals(text):
     has_choice_keyword = bool(CHOICE_KEYWORD_PATTERN.search(text))
 
     # 检测填空标记（3个以上连续下划线）
-    has_blank_marks = bool(re.search(r'_{3,}', text))
+    blank_matches = re.findall(r'_{3,}', text)
+    blank_count = len(blank_matches)
+    has_blank_marks = blank_count > 0
 
     # 检测小题序号（1. 2. 3. 等带问号的小题）
     has_sub_questions = bool(re.search(r'[1-5]\.\s*\w+.*[?？]', text))
+
+    # 检测填空形式的选择题（同时有填空标记和选项）
+    is_blank_choice = has_blank_marks and option_count >= 2
 
     # 综合判定逻辑：
     # 1. 有选项（>=2） -> 选择题
@@ -51,7 +56,9 @@ def extract_choice_signals(text):
         "option_count": option_count,
         "has_choice_keyword": has_choice_keyword,
         "has_blank_marks": has_blank_marks,
+        "blank_count": blank_count,
         "has_sub_questions": has_sub_questions,
+        "is_blank_choice": is_blank_choice,
         "is_choice_like": is_choice_like,
     }
 
