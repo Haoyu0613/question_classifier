@@ -48,8 +48,6 @@ CONFIG = {
 
     # 选择题启发式配置
     'enable_choice_heuristic': True,
-    'choice_boost_factor': 1.6,
-    'choice_keyword_boost_factor': 2.2,
 }
 
 

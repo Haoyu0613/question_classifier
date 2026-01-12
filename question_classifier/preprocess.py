@@ -17,6 +17,8 @@ def extract_choice_signals(text):
         dict: {
             "option_count": 选项数量,
             "has_choice_keyword": 是否包含选择题关键词,
+            "has_blank_marks": 是否包含填空标记,
+            "has_sub_questions": 是否包含小题序号,
             "is_choice_like": 是否判定为选择题
         }
     """
@@ -26,11 +28,30 @@ def extract_choice_signals(text):
     option_matches = CHOICE_OPTION_PATTERN.findall(text)
     option_count = len(set(option_matches))
     has_choice_keyword = bool(CHOICE_KEYWORD_PATTERN.search(text))
-    is_choice_like = option_count >= 2 or has_choice_keyword
+
+    # 检测填空标记（3个以上连续下划线）
+    has_blank_marks = bool(re.search(r'_{3,}', text))
+
+    # 检测小题序号（1. 2. 3. 等带问号的小题）
+    has_sub_questions = bool(re.search(r'[1-5]\.\s*\w+.*[?？]', text))
+
+    # 综合判定逻辑：
+    # 1. 有选项（>=2） -> 选择题
+    # 2. 有选择题关键词 -> 选择题
+    # 3. 填空标记+选项 -> 填空形式的选择题
+    # 4. 小题序号+选项 -> 材料+选择题
+    is_choice_like = (
+        option_count >= 2 or
+        has_choice_keyword or
+        (has_blank_marks and option_count >= 2) or
+        (has_sub_questions and option_count >= 2)
+    )
 
     return {
         "option_count": option_count,
         "has_choice_keyword": has_choice_keyword,
+        "has_blank_marks": has_blank_marks,
+        "has_sub_questions": has_sub_questions,
         "is_choice_like": is_choice_like,
     }
 
