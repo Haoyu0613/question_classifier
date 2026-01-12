@@ -5,6 +5,36 @@
 import re
 
 
+CHOICE_OPTION_PATTERN = re.compile(r'(?:^|[\s（(])([A-D])[\.\、．\)）:：]\s*')
+CHOICE_KEYWORD_PATTERN = re.compile(r'(选择题|单选|多选|不定项选择)')
+
+
+def extract_choice_signals(text):
+    """
+    提取选择题特征信号
+
+    Returns:
+        dict: {
+            "option_count": 选项数量,
+            "has_choice_keyword": 是否包含选择题关键词,
+            "is_choice_like": 是否判定为选择题
+        }
+    """
+    if not isinstance(text, str):
+        text = str(text)
+
+    option_matches = CHOICE_OPTION_PATTERN.findall(text)
+    option_count = len(set(option_matches))
+    has_choice_keyword = bool(CHOICE_KEYWORD_PATTERN.search(text))
+    is_choice_like = option_count >= 2 or has_choice_keyword
+
+    return {
+        "option_count": option_count,
+        "has_choice_keyword": has_choice_keyword,
+        "is_choice_like": is_choice_like,
+    }
+
+
 def clean_text(text):
     """
     清洗题目文本
