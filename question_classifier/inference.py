@@ -5,6 +5,7 @@
 import pickle
 import numpy as np
 from preprocess import clean_text, extract_choice_signals
+from type_keywords import extract_type_keywords, should_suppress_choice_boost
 
 
 class QuestionClassifier:
@@ -86,11 +87,13 @@ class QuestionClassifier:
             type_probs = type_probs_raw
 
         choice_signals = extract_choice_signals(text)
+        type_keywords = extract_type_keywords(text)
+
         if self.enable_choice_heuristic and choice_signals["is_choice_like"]:
-            type_probs = self._apply_choice_boost(type_probs, choice_signals)
-        
+            type_probs = self._apply_choice_boost(type_probs, choice_signals, type_keywords)
+
         type_pred = self.types[np.argmax(type_probs)]
-        
+
         return {
             'subject': subject_pred,
             'subject_confidence': float(np.max(subject_probs)),
@@ -101,6 +104,7 @@ class QuestionClassifier:
             'type_probs_raw': {t: float(p) for t, p in zip(self.types, type_probs_raw)},
             'calibrated': use_calibration,
             'choice_signals': choice_signals,
+            'type_keywords': type_keywords,
         }
     
     def _calibrate_type_probs(self, type_probs, subject_probs, top_k=3):
@@ -128,14 +132,15 @@ class QuestionClassifier:
 
         return calibrated
 
-    def _apply_choice_boost(self, type_probs, choice_signals):
+    def _apply_choice_boost(self, type_probs, choice_signals, type_keywords):
         """
-        对选择题进行启发式概率增强（双向调整策略）
+        对选择题进行启发式概率增强（双向调整策略 + 反向特征保护）
 
         策略：
         1. 增强选择题概率（根据选项数量和关键词）
         2. 对填空形式的选择题，同时压制填空概率
-        3. 归一化
+        3. 反向保护：如果有其他题型的强特征，抑制增强
+        4. 归一化
         """
         boosted = np.array(type_probs, dtype=float)
         if '选择' not in self.types:
@@ -143,22 +148,27 @@ class QuestionClassifier:
 
         choice_index = self.types.index('选择')
 
-        # 1. 分级增强选择题
-        if choice_signals["has_choice_keyword"]:
-            # 明确的选择题关键词，强增强
-            boost_factor = 3.0
-        elif choice_signals["option_count"] >= 4:
-            # 4个选项，强增强
-            boost_factor = 3.5
-        elif choice_signals["option_count"] >= 3:
-            # 3个选项，中等增强
-            boost_factor = 3.0
-        elif choice_signals["option_count"] >= 2:
-            # 2个选项，温和增强
-            boost_factor = 2.5
+        # 0. 反向保护：检查是否应该抑制增强
+        if should_suppress_choice_boost(choice_signals, type_keywords):
+            # 虽然检测到选项，但有其他题型的强特征，不增强或弱增强
+            boost_factor = 1.5  # 轻微增强，避免过度
         else:
-            # 无明确信号，不增强
-            return boosted
+            # 1. 分级增强选择题
+            if choice_signals["has_choice_keyword"]:
+                # 明确的选择题关键词，强增强
+                boost_factor = 3.0
+            elif choice_signals["option_count"] >= 4:
+                # 4个选项，强增强
+                boost_factor = 3.5
+            elif choice_signals["option_count"] >= 3:
+                # 3个选项，中等增强
+                boost_factor = 3.0
+            elif choice_signals["option_count"] >= 2:
+                # 2个选项，温和增强
+                boost_factor = 2.5
+            else:
+                # 无明确信号，不增强
+                return boosted
 
         boosted[choice_index] *= boost_factor
 
