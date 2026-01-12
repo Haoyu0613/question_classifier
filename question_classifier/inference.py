@@ -130,13 +130,12 @@ class QuestionClassifier:
 
     def _apply_choice_boost(self, type_probs, choice_signals):
         """
-        对选择题进行启发式概率增强
+        对选择题进行启发式概率增强（双向调整策略）
 
-        采用分级增强策略：
-        - 明确关键词: 强增强 (2.5x)
-        - 3个以上选项: 中等增强 (2.0x)
-        - 2个选项: 温和增强 (1.8x)
-        - 无信号: 不增强
+        策略：
+        1. 增强选择题概率（根据选项数量和关键词）
+        2. 对填空形式的选择题，同时压制填空概率
+        3. 归一化
         """
         boosted = np.array(type_probs, dtype=float)
         if '选择' not in self.types:
@@ -144,21 +143,32 @@ class QuestionClassifier:
 
         choice_index = self.types.index('选择')
 
-        # 分级增强策略
+        # 1. 分级增强选择题
         if choice_signals["has_choice_keyword"]:
             # 明确的选择题关键词，强增强
-            boost_factor = 2.5
+            boost_factor = 3.0
+        elif choice_signals["option_count"] >= 4:
+            # 4个选项，强增强
+            boost_factor = 3.5
         elif choice_signals["option_count"] >= 3:
-            # 3个或更多选项，中等增强
-            boost_factor = 2.0
+            # 3个选项，中等增强
+            boost_factor = 3.0
         elif choice_signals["option_count"] >= 2:
             # 2个选项，温和增强
-            boost_factor = 1.8
+            boost_factor = 2.5
         else:
             # 无明确信号，不增强
             return boosted
 
         boosted[choice_index] *= boost_factor
+
+        # 2. 如果是填空形式的选择题，压制填空概率
+        if choice_signals.get("is_blank_choice", False):
+            if '填空' in self.types:
+                blank_index = self.types.index('填空')
+                boosted[blank_index] *= 0.4  # 压制到40%
+
+        # 3. 归一化
         boosted = boosted / (boosted.sum() + 1e-10)
         return boosted
     

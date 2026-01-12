@@ -35,6 +35,9 @@ def extract_choice_signals(text):
     # 检测小题序号（1. 2. 3. 等带问号的小题）
     has_sub_questions = bool(re.search(r'[1-5]\.\s*\w+.*[?？]', text))
 
+    # 检测填空形式的选择题（同时有填空标记和选项）
+    is_blank_choice = has_blank_marks and option_count >= 2
+
     # 综合判定逻辑：
     # 1. 有选项（>=2） -> 选择题
     # 2. 有选择题关键词 -> 选择题
@@ -52,6 +55,7 @@ def extract_choice_signals(text):
         "has_choice_keyword": has_choice_keyword,
         "has_blank_marks": has_blank_marks,
         "has_sub_questions": has_sub_questions,
+        "is_blank_choice": is_blank_choice,
         "is_choice_like": is_choice_like,
     }
 
