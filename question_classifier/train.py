@@ -45,6 +45,11 @@ CONFIG = {
     # 标签定义
     'subjects': ['语文', '数学', '英语', '物理', '化学', '生物', '地理', '历史', '道德与法治'],
     'types': ['选择', '填空', '阅读理解', '材料分析', '计算', '实验探究', '简答', '写作'],
+
+    # 选择题启发式配置
+    'enable_choice_heuristic': True,
+    'choice_boost_factor': 1.6,
+    'choice_keyword_boost_factor': 2.2,
 }
 
 

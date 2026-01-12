@@ -4,7 +4,7 @@
 """
 import pickle
 import numpy as np
-from preprocess import clean_text
+from preprocess import clean_text, extract_choice_signals
 
 
 class QuestionClassifier:
@@ -45,6 +45,10 @@ class QuestionClassifier:
         # 使用模型实际的类别顺序（sklearn按字母排序）
         self.subjects = list(self.subject_model.classes_)
         self.types = list(self.type_model.classes_)
+
+        self.choice_boost_factor = self.config.get('choice_boost_factor', 1.6)
+        self.choice_keyword_boost_factor = self.config.get('choice_keyword_boost_factor', 2.2)
+        self.enable_choice_heuristic = self.config.get('enable_choice_heuristic', True)
         
         print(f"模型加载完成！")
         print(f"  学科: {self.subjects}")
@@ -82,6 +86,10 @@ class QuestionClassifier:
             )
         else:
             type_probs = type_probs_raw
+
+        choice_signals = extract_choice_signals(text)
+        if self.enable_choice_heuristic and choice_signals["is_choice_like"]:
+            type_probs = self._apply_choice_boost(type_probs, choice_signals)
         
         type_pred = self.types[np.argmax(type_probs)]
         
@@ -94,6 +102,7 @@ class QuestionClassifier:
             'type_probs': {t: float(p) for t, p in zip(self.types, type_probs)},
             'type_probs_raw': {t: float(p) for t, p in zip(self.types, type_probs_raw)},
             'calibrated': use_calibration,
+            'choice_signals': choice_signals,
         }
     
     def _calibrate_type_probs(self, type_probs, subject_probs, top_k=3):
@@ -118,8 +127,25 @@ class QuestionClassifier:
         
         # 归一化
         calibrated = calibrated / (calibrated.sum() + 1e-10)
-        
+
         return calibrated
+
+    def _apply_choice_boost(self, type_probs, choice_signals):
+        """
+        对选择题进行启发式概率增强
+        """
+        boosted = np.array(type_probs, dtype=float)
+        if '选择' not in self.types:
+            return boosted
+
+        choice_index = self.types.index('选择')
+        boost_factor = self.choice_boost_factor
+        if choice_signals["has_choice_keyword"]:
+            boost_factor = max(boost_factor, self.choice_keyword_boost_factor)
+
+        boosted[choice_index] *= boost_factor
+        boosted = boosted / (boosted.sum() + 1e-10)
+        return boosted
     
     def predict_batch(self, texts, use_calibration=True, top_k_subjects=3):
         """
