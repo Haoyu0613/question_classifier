@@ -46,8 +46,6 @@ class QuestionClassifier:
         self.subjects = list(self.subject_model.classes_)
         self.types = list(self.type_model.classes_)
 
-        self.choice_boost_factor = self.config.get('choice_boost_factor', 1.6)
-        self.choice_keyword_boost_factor = self.config.get('choice_keyword_boost_factor', 2.2)
         self.enable_choice_heuristic = self.config.get('enable_choice_heuristic', True)
         
         print(f"模型加载完成！")
@@ -133,15 +131,32 @@ class QuestionClassifier:
     def _apply_choice_boost(self, type_probs, choice_signals):
         """
         对选择题进行启发式概率增强
+
+        采用分级增强策略：
+        - 明确关键词: 强增强 (2.5x)
+        - 3个以上选项: 中等增强 (2.0x)
+        - 2个选项: 温和增强 (1.8x)
+        - 无信号: 不增强
         """
         boosted = np.array(type_probs, dtype=float)
         if '选择' not in self.types:
             return boosted
 
         choice_index = self.types.index('选择')
-        boost_factor = self.choice_boost_factor
+
+        # 分级增强策略
         if choice_signals["has_choice_keyword"]:
-            boost_factor = max(boost_factor, self.choice_keyword_boost_factor)
+            # 明确的选择题关键词，强增强
+            boost_factor = 2.5
+        elif choice_signals["option_count"] >= 3:
+            # 3个或更多选项，中等增强
+            boost_factor = 2.0
+        elif choice_signals["option_count"] >= 2:
+            # 2个选项，温和增强
+            boost_factor = 1.8
+        else:
+            # 无明确信号，不增强
+            return boosted
 
         boosted[choice_index] *= boost_factor
         boosted = boosted / (boosted.sum() + 1e-10)
