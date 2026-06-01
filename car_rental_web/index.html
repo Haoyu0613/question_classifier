@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>极速租车 · 轻松出行</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <header class="navbar">
+    <div class="container nav-inner">
+      <a href="#" class="logo">🚗 极速租车</a>
+      <nav class="nav-links">
+        <a href="#cars">车型</a>
+        <a href="#why">为什么选我们</a>
+        <a href="#contact">联系我们</a>
+      </nav>
+      <button class="btn btn-outline" id="loginBtn">登录</button>
+    </div>
+  </header>
+
+  <!-- 主视觉 + 搜索 -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-text">
+        <h1>说走就走，<br />一键预订你的座驾</h1>
+        <p>覆盖全国 200+ 城市，3000+ 网点，分钟级取车，价格透明无套路。</p>
+      </div>
+
+      <form class="search-card" id="searchForm">
+        <h2 class="search-title">查找车辆</h2>
+
+        <div class="field">
+          <label for="location">取车地点</label>
+          <input type="text" id="location" placeholder="如：北京首都机场 T3" required />
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="pickup">取车时间</label>
+            <input type="datetime-local" id="pickup" required />
+          </div>
+          <div class="field">
+            <label for="dropoff">还车时间</label>
+            <input type="datetime-local" id="dropoff" required />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="carType">车型偏好</label>
+          <select id="carType">
+            <option value="all">全部车型</option>
+            <option value="经济型">经济型</option>
+            <option value="舒适型">舒适型</option>
+            <option value="SUV">SUV</option>
+            <option value="豪华型">豪华型</option>
+            <option value="新能源">新能源</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">搜索车辆</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- 车辆列表 -->
+  <section class="cars" id="cars">
+    <div class="container">
+      <div class="section-head">
+        <h2>热门车型</h2>
+        <div class="filters" id="filters">
+          <button class="chip active" data-type="all">全部</button>
+          <button class="chip" data-type="经济型">经济型</button>
+          <button class="chip" data-type="舒适型">舒适型</button>
+          <button class="chip" data-type="SUV">SUV</button>
+          <button class="chip" data-type="豪华型">豪华型</button>
+          <button class="chip" data-type="新能源">新能源</button>
+        </div>
+      </div>
+
+      <div class="car-grid" id="carGrid"><!-- JS 渲染 --></div>
+      <p class="empty-state" id="emptyState" hidden>暂无符合条件的车辆，换个筛选试试～</p>
+    </div>
+  </section>
+
+  <!-- 优势 -->
+  <section class="why" id="why">
+    <div class="container">
+      <h2>为什么选择极速租车</h2>
+      <div class="feature-grid">
+        <div class="feature"><div class="feat-icon">⚡</div><h3>极速取车</h3><p>线上下单，到店扫码即走，平均 3 分钟提车。</p></div>
+        <div class="feature"><div class="feat-icon">💰</div><h3>价格透明</h3><p>明码标价，无隐形消费，支持随时取消。</p></div>
+        <div class="feature"><div class="feat-icon">🛡️</div><h3>全程保障</h3><p>每辆车含基础保险，7×24 道路救援。</p></div>
+        <div class="feature"><div class="feat-icon">📍</div><h3>网点遍布</h3><p>200+ 城市覆盖，异地还车更方便。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 页脚 -->
+  <footer class="footer" id="contact">
+    <div class="container footer-inner">
+      <div>
+        <div class="logo">🚗 极速租车</div>
+        <p>客服热线：400-888-8888</p>
+      </div>
+      <p class="copyright">© 2026 极速租车 Demo · 仅供学习演示</p>
+    </div>
+  </footer>
+
+  <!-- 预订弹窗 -->
+  <div class="modal" id="bookingModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card">
+      <button class="modal-close" data-close aria-label="关闭">×</button>
+      <h2 id="modalTitle">预订车辆</h2>
+      <div class="modal-car" id="modalCar"></div>
+      <form id="bookingForm">
+        <div class="field">
+          <label for="bkName">姓名</label>
+          <input type="text" id="bkName" required />
+        </div>
+        <div class="field">
+          <label for="bkPhone">手机号</label>
+          <input type="tel" id="bkPhone" pattern="1\d{10}" placeholder="11 位手机号" required />
+        </div>
+        <div class="field">
+          <label for="bkDays">租期（天）</label>
+          <input type="number" id="bkDays" min="1" value="1" required />
+        </div>
+        <div class="total-row">预计费用：<span id="bkTotal">¥0</span></div>
+        <button type="submit" class="btn btn-primary btn-block">确认预订</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 提示条 -->
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
